@@ -1,8 +1,8 @@
-const { createRemoteFileNode } = require('gatsby-source-filesystem');
-const { fluid } = require(`gatsby-plugin-sharp`);
-const fs = require(`fs-extra`);
-const path = require(`path`);
-const getPluginValues = require(`./plugin-values`);
+const { createRemoteFileNode } = require('gatsby-source-filesystem')
+const { fluid } = require(`gatsby-plugin-sharp`)
+const fs = require(`fs-extra`)
+const path = require(`path`)
+const getPluginValues = require(`./plugin-values`)
 
 // all-in-one function that is not used
 const downloadImage = async (
@@ -19,9 +19,9 @@ const downloadImage = async (
   generateWebp = true,
   httpHeaders = {}
 ) => {
-  const { createNode } = actions;
+  const { createNode } = actions
 
-  const { imageOptions } = getPluginValues(pathPrefix);
+  const { imageOptions } = getPluginValues(pathPrefix)
 
   const fileNode = await downloadMediaFile({
     url,
@@ -30,7 +30,7 @@ const downloadImage = async (
     createNode,
     createNodeId,
     httpHeaders,
-  });
+  })
 
   const fluidResult = await convertFileNodeToFluid({
     generateWebp,
@@ -38,10 +38,10 @@ const downloadImage = async (
     imageOptions,
     reporter,
     cache,
-  });
+  })
 
-  return fluidResult;
-};
+  return fluidResult
+}
 
 // downloads media file to gatsby folder
 const downloadMediaFile = async ({
@@ -52,7 +52,7 @@ const downloadMediaFile = async ({
   createNodeId,
   httpHeaders = {},
 }) => {
-  let fileNode = false;
+  let fileNode = false
   try {
     fileNode = await createRemoteFileNode({
       url,
@@ -61,13 +61,13 @@ const downloadMediaFile = async ({
       createNode,
       createNodeId,
       httpHeaders,
-    });
+    })
   } catch (e) {
-    console.log('FAILED to download ' + url);
+    console.log(`FAILED to download ${url}`, e)
   }
 
-  return fileNode;
-};
+  return fileNode
+}
 
 // generates fluid object (gatsby-image) from the file node
 const convertFileNodeToFluid = async ({
@@ -82,7 +82,7 @@ const convertFileNodeToFluid = async ({
     args: imageOptions,
     reporter,
     cache,
-  });
+  })
 
   if (generateWebp) {
     const fluidWebp = await fluid({
@@ -90,13 +90,13 @@ const convertFileNodeToFluid = async ({
       args: { ...imageOptions, toFormat: 'webp' },
       reporter,
       cache,
-    });
+    })
 
-    fluidResult.srcSetWebp = fluidWebp.srcSet;
+    fluidResult.srcSetWebp = fluidWebp.srcSet
   }
 
-  return fluidResult;
-};
+  return fluidResult
+}
 
 // source: gatsby-source-filesystem/src/extend-file-node.js
 // copies file to the `/static` folder
@@ -106,29 +106,29 @@ const copyToStatic = ({
   context,
   pathPrefix,
 }) => {
-  const details = getNodeAndSavePathDependency(file.id, context.path);
-  const fileName = `${file.name}-${file.internal.contentDigest}${details.ext}`;
+  const details = getNodeAndSavePathDependency(file.id, context.path)
+  const fileName = `${file.name}-${file.internal.contentDigest}${details.ext}`
 
-  const publicPath = path.join(process.cwd(), `public`, `static`, fileName);
+  const publicPath = path.join(process.cwd(), `public`, `static`, fileName)
 
   if (!fs.existsSync(publicPath)) {
-    fs.copy(details.absolutePath, publicPath, err => {
+    fs.copy(details.absolutePath, publicPath, (err) => {
       if (err) {
         console.error(
           `error copying file from ${details.absolutePath} to ${publicPath}`,
           err
-        );
+        )
       }
-    });
+    })
   }
 
-  return `${pathPrefix}/static/${fileName}`;
-};
+  return `${pathPrefix}/static/${fileName}`
+}
 
 // helper function for logging messages
 const debugLog = (debugOutput, ...args) => {
-  debugOutput && console.log(...args);
-};
+  debugOutput && console.log(...args)
+}
 
 module.exports = {
   downloadMediaFile,
@@ -136,4 +136,4 @@ module.exports = {
   convertFileNodeToFluid,
   debugLog,
   copyToStatic,
-};
+}

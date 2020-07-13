@@ -56,6 +56,15 @@ module.exports = async function sourceParser(
     return '';
   }
 
+  // // Cleaning content
+  // // Converting content to html and back to process escape characters
+  // const _div = $($.parseHTML('<div></div>'))
+  // const contentHTML = $($.parseHTML(content))
+  // htmlContent.appendTo(_div)
+  // const contentHTMLasString = container.html()
+  // // decoding uri with utf-8, initially to read cyrilic characters
+  // const content = decodeURIComponent(contentHTMLasString)
+
   const $ = cheerio.load(content, { xmlMode: true, decodeEntities: false });
 
   let imageRefs = [];
@@ -80,30 +89,32 @@ module.exports = async function sourceParser(
     const isUrlRelative = urlParsed.is('relative');
 
     // if not relative root url or not matches uploads dir
-    if (
-      !(isUrlRelative && url.startsWith(uploadsUrlRelative)) &&
-      !urlNoProtocol.startsWith(uploadsUrlNoProtocol)
-    ) {
-      return;
-    }
+    // if (
+    //   !(isUrlRelative && url.startsWith(uploadsUrlRelative)) &&
+    //   !urlNoProtocol.startsWith(uploadsUrlNoProtocol)
+    // ) {
+    //   console.log('not relative root url')
+    //   return
+    // }
 
     if (isUrlRelative) {
       url = urlParsed.absoluteTo(wordPressUrl).href();
     }
 
     if (imageRefs.some(({ url: storedUrl }) => storedUrl === url)) {
-      // console.log('found image (again):' , url);
+      console.log('found image (again):', url);
       return;
     }
 
     // console.log('found image:' , url);
 
-    imageRefs.push({
-      url,
-      urlKey,
-      name: item.name,
-      elem: $(item),
-    });
+    if (!($(item).prop('tagName') === 'a' || $(item).prop('tagName') === 'A'))
+      imageRefs.push({
+        url,
+        urlKey,
+        name: item.name,
+        elem: $(item),
+      });
 
     // wordpress wpautop wraps <img> with <p>
     // this causes react console message when replacing <img> with <Img> component
@@ -111,20 +122,18 @@ module.exports = async function sourceParser(
     if (item.name === 'img') {
       $(item)
         .parents('p')
-        .each(function(index, element) {
+        .each(function (index, element) {
           pRefs.push($(element));
-          $(element)
-            .contents()
-            .insertAfter($(element));
+          $(element).contents().insertAfter($(element));
         });
     }
   });
 
   // deletes <p> elements
-  pRefs.forEach(elem => elem.remove());
+  pRefs.forEach((elem) => elem.remove());
 
   await Promise.all(
-    imageRefs.map(async item => {
+    imageRefs.map(async (item) => {
       const fileNode = await downloadMediaFile({
         url: item.url,
         cache,
@@ -148,7 +157,7 @@ module.exports = async function sourceParser(
           id: fileNode.id,
         });
 
-        console.log(`Downloaded file: ${item.url}`);
+        // console.log(`Downloaded file: ${item.url}`)
         return;
       }
 
@@ -170,7 +179,7 @@ module.exports = async function sourceParser(
         console.log('Exception fluid', e);
       }
 
-      console.log(`Downloaded file:`, item.url);
+      // console.log(`Downloaded file:`, item.url)
     })
   );
 
@@ -204,6 +213,11 @@ module.exports = async function sourceParser(
     $(item).attr('href', swapVal.src);
     // prevents converting to <Link> in contentParser
     $(item).attr('data-gts-swapped-href', 'gts-swapped-href');
+  });
+
+  $('script').each((i, item) => {
+    $(item).attr('data-postponed-src', item.attribs.src);
+    $(item).removeAttr('src');
   });
 
   return $.html();
